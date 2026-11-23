@@ -1,0 +1,32 @@
+:root {
+  --pk-teal: #21737f;
+  --pk-teal-dark: #195c66;
+  --pk-yellow: #f2b705;
+  --pk-bg: #f5fbfa;
+  --bs-body-font-family: 'DM Sans', system-ui, sans-serif;
+}
+body { background: var(--pk-bg); }
+.pk-header { background: var(--pk-teal); }
+.pk-logo { width: 2.75rem; height: 2.75rem; background: #fff; border-radius: .75rem;
+           display: grid; place-items: center; color: var(--pk-yellow); font-size: 1.4rem; }
+.text-pk { color: var(--pk-teal) !important; }
+.text-pk-yellow { color: var(--pk-yellow) !important; }
+.pk-card { border: 1px solid #e3eeee; border-radius: 1.25rem; box-shadow: 0 10px 30px rgba(33,115,127,.08); }
+
+.btn-pk { --bs-btn-color: #fff; --bs-btn-bg: var(--pk-teal); --bs-btn-border-color: var(--pk-teal);
+          --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--pk-teal-dark); --bs-btn-hover-border-color: var(--pk-teal-dark);
+          --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--pk-teal-dark); --bs-btn-active-border-color: var(--pk-teal-dark); }
+.btn-pk-yellow { --bs-btn-color: #fff; --bs-btn-bg: var(--pk-yellow); --bs-btn-border-color: var(--pk-yellow);
+                 --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #d9a304; --bs-btn-hover-border-color: #d9a304;
+                 --bs-btn-active-color: #fff; --bs-btn-active-bg: #d9a304; --bs-btn-active-border-color: #d9a304; }
+
+/* kartu pilihan role (radio Bootstrap yang diberi tampilan kartu) */
+.role-card { display: flex; flex-direction: column; align-items: center; padding: 2rem 1.5rem; background: #fff;
+             border: 1px solid #e3eeee; border-radius: 1.25rem; cursor: pointer; transition: .15s; }
+.role-card .role-icon { font-size: 4.5rem; color: var(--pk-teal); }
+.role-card h2 { color: var(--pk-yellow); }
+.role-card .bi-check-circle-fill { color: var(--pk-yellow); margin-right: .4rem; }
+.btn-check:checked + .role-card { background: var(--pk-teal); color: #fff; transform: translateY(-6px);
+                                  box-shadow: 0 14px 30px rgba(33,115,127,.25); }
+.btn-check:checked + .role-card .role-icon { color: #fff; }
+.btn-check:focus-visible + .role-card { outline: 3px solid var(--pk-yellow); }
