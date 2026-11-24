@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('link_bukti')->nullable();
             $table->boolean('berkas_lengkap')->default(false);
             $table->string('status_pengajuan', 20)->default('Draft');
-            $table->text('catatan')->nullable(); // alasan penolakan dari Admin
+            $table->text('catatan')->nullable(); // dipertahankan untuk catatan pengajuan lama
             $table->timestamps();
 
             $table->foreign('id_pic')->references('id_pic')->on('pic')->restrictOnDelete();

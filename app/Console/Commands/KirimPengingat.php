@@ -6,7 +6,7 @@ use App\Models\Notifikasi;
 use App\Models\Pengingat;
 use Illuminate\Console\Command;
 
-/** jadwalkanPengingat(): dijalankan scheduler tiap menit, mengirim pengingat yang sudah jatuh tempo. */
+/** Processes due reminders for program registrations. */
 class KirimPengingat extends Command
 {
     protected $signature = 'pengingat:kirim';

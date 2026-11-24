@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 /**
- * Akun login untuk semua aktor (GNR): Mahasiswa (MHS), PIC, dan Super Admin (ADM).
+ * Akun login untuk mahasiswa (MHS) dan PIC.
  * Data khusus peran disimpan di tabel mahasiswa / pic.
  */
 class User extends Authenticatable

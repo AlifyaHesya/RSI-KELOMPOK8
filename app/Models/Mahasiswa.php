@@ -17,10 +17,9 @@ class Mahasiswa extends Model
 
     protected $fillable = ['user_id', 'nim', 'program_studi'];
 
-    /** Pesan kesalahan dari validasiDataMahasiswa() terakhir (tidak disimpan ke database). */
     public ?MessageBag $kesalahanValidasi = null;
 
-    public function user(): BelongsTo
+    public function pengguna(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
@@ -35,10 +34,6 @@ class Mahasiswa extends Model
         return $this->hasMany(Pengingat::class, 'id_mahasiswa', 'id_mahasiswa');
     }
 
-    /**
-     * Sequence langkah 9: validasiDataMahasiswa(dataPendaftaran): hasilValidasi.
-     * Memeriksa kelengkapan nama, NIM, email, program studi, dan memastikan NIM sama dengan akun yang login.
-     */
     public function validasiDataMahasiswa(array $dataPendaftaran): bool
     {
         $validator = Validator::make($dataPendaftaran, [

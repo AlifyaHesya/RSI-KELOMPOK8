@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('kode_akses', function (Blueprint $table) {
             $table->id();
-            $table->enum('role', ['PIC', 'ADM']);
+            $table->enum('role', ['PIC']);
             $table->string('kode', 50)->unique();
             $table->boolean('aktif')->default(true);
             $table->timestamps();

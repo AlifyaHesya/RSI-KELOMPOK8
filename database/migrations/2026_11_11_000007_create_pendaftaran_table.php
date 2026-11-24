@@ -18,7 +18,6 @@ return new class extends Migration
 
             $table->foreign('id_mahasiswa')->references('id_mahasiswa')->on('mahasiswa')->cascadeOnDelete();
             $table->foreign('id_proker')->references('id_proker')->on('program_kerja')->cascadeOnDelete();
-            // satu mahasiswa hanya boleh mendaftar sekali pada satu proker
             $table->unique(['id_mahasiswa', 'id_proker']);
         });
     }

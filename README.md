@@ -1,11 +1,8 @@
 # Implementasi Laravel – Class Diagram Modul 3
 
-Paket ini berisi **migration (DDL), model, controller, route, middleware, command, seeder**, dan view PDF.
-View Blade untuk kelas `<<boundary>>` (halaman/form) belum dibuat; controller sudah memanggil nama view-nya
-(mis. `katalog.index`, `pic.pengajuan.show`).
+Paket ini berisi **migration (DDL), model, controller, route, middleware, command, seeder**, dan view Blade untuk alur mahasiswa dan PIC.
 
-> Kode ini belum dijalankan (lingkungan penyusun tidak punya PHP). Jalankan `php artisan migrate --seed`
-> dan laporkan error bila ada.
+Jalankan `php artisan migrate --seed` untuk menyiapkan database. Migrasi terbaru mengubah akun ADM lama menjadi PIC.
 
 ## Cara memasang (Laravel 11/12, PHP 8.2+)
 
@@ -27,7 +24,7 @@ View Blade untuk kelas `<<boundary>>` (halaman/form) belum dibuat; controller su
    (di server: cron `* * * * * php artisan schedule:run`)
 7. `php artisan migrate --seed`
 
-Akun awal: `admin@bem.test` / `password`. Kode akses registrasi: `PIC-2026` dan `ADM-2026` (ganti di seeder).
+Kode akses registrasi PIC: `PIC-2026` (ganti di seeder).
 
 ## Pemetaan class diagram → Laravel
 
@@ -37,8 +34,8 @@ Akun awal: `admin@bem.test` / `password`. Kode akses registrasi: `PIC-2026` dan 
 | PengajuanModel | Model `Pengajuan`, tabel `pengajuan` |
 | NotifikasiService | Model `Notifikasi`, tabel `notifikasi` |
 | `<<controller>>` | Controller dengan nama sama; PengingatController + command `pengingat:kirim` |
-| `<<boundary>>` | View Blade (tahap berikutnya) |
-| Aktor Super Admin & kode akses | `users.role = ADM`, tabel `kode_akses` |
+| `<<boundary>>` | View Blade di `resources/views` |
+| Kode akses PIC | `users.role = PIC`, tabel `kode_akses` |
 
 ## Penyesuaian terhadap modul (perlu Anda ketahui)
 
@@ -47,11 +44,10 @@ Akun awal: `admin@bem.test` / `password`. Kode akses registrasi: `PIC-2026` dan 
 - **`pendaftaran`**: unique pada pasangan `(id_mahasiswa, id_proker)`. Di modul `idMahasiswa` dan `tanggalPendaftaran` unique sendiri-sendiri,
   yang membuat satu mahasiswa hanya bisa mendaftar sekali seumur hidup.
 - **`kuotaTersedia` dan `statusPendaftaran` (ProgramKerja)** tidak disimpan sebagai kolom, tetapi dihitung (`cekKuotaTersedia()`, `cekStatusPendaftaran()`).
-  `status_buka` tetap kolom (PIC buka/tutup), ditambah `dipublikasi` (Admin, UC-16).
+  `status_buka` tetap kolom (PIC buka/tutup), ditambah `dipublikasi` (PIC setelah pengajuan disetujui).
 - **`pengajuan.id_proker`** dibuat NOT NULL + unique: program kerja dibuat dulu sebagai Draft, baru diajukan.
   Kolom berkas (`berkas_proposal`, `berkas_rab`, `berkas_surat_pengantar`, `link_bukti`) dan `catatan` penolakan ditambahkan dari sketsa UI.
-- **Status setelah PIC konfirmasi**: pseudo-code PC-10-02 menulis "Disetujui" di proses tetapi "Menunggu Konfirmasi" di output. Kode ini mengikuti output
-  (Admin yang menyetujui, UC-15). Sebaiknya rapikan pseudo-code di modul.
+- **Status setelah PIC konfirmasi**: PIC langsung menyetujui dan mempublikasikan proker setelah berkas wajib lengkap; tidak ada role Super Admin.
 - **`laporan_kegiatan`**: memakai atribut dari class diagram (anggaran, evaluasi, jumlah hadir, tanggal realisasi); `nama_proker` dihapus karena redundan.
 - **Nilai enum `kategori`** (Lomba, Seminar, Workshop, Pengabdian, Lainnya) hanya contoh; ubah di `app/Enums/KategoriProker.php` sebelum migrate.
 - Ekspor "Excel" berupa CSV (bisa dibuka di Excel). Untuk `.xlsx` asli, pakai `maatwebsite/excel`.
@@ -60,5 +56,5 @@ Akun awal: `admin@bem.test` / `password`. Kode akses registrasi: `PIC-2026` dan 
 
 1. Jalankan migration dan uji alur lewat `php artisan tinker`.
 2. Buat view Blade per boundary (login/registrasi, katalog, form pendaftaran, form proker, halaman pengajuan, rekap).
-3. Halaman daftar notifikasi (tabel `notifikasi` sudah terisi dari pengajuan, keputusan Admin, dan pengingat).
-4. Feature test untuk alur pendaftaran (kuota, duplikat) dan pengajuan.
+3. Halaman daftar notifikasi (tabel `notifikasi` terisi dari pengingat).
+4. Tambahkan feature test untuk alur pendaftaran (kuota, duplikat) dan pengajuan.

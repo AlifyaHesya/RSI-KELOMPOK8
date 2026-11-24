@@ -23,7 +23,7 @@ return new class extends Migration
             $table->dateTime('tanggal_buka_pendaftaran');
             $table->dateTime('batas_pendaftaran');
             $table->boolean('status_buka')->default(false);   // PIC membuka/menutup pendaftaran
-            $table->boolean('dipublikasi')->default(false);   // Admin mempublikasikan ke katalog
+            $table->boolean('dipublikasi')->default(false);   // PIC mempublikasikan setelah konfirmasi pengajuan
             $table->timestamps();
 
             $table->foreign('id_pic')->references('id_pic')->on('pic')->restrictOnDelete();

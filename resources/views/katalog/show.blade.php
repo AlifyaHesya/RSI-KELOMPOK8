@@ -1,4 +1,3 @@
-@use('App\Enums\Role')
 @extends('layouts.app')
 @section('title', $programKerja->nama_proker)
 
@@ -11,7 +10,6 @@
 @section('content')
 <div class="container py-5" style="max-width: 860px">
 
-    {{-- flash: pesan (alasan), konfirmasi pengingat, sukses --}}
     @if (session('pesan'))
         <div class="alert alert-warning">{{ session('pesan') }}</div>
     @endif
@@ -22,6 +20,9 @@
     @endif
 
     <div class="pk-card bg-white p-4 p-md-5">
+        @if ($programKerja->poster_path)
+            <img src="{{ asset('storage/' . $programKerja->poster_path) }}" alt="Poster {{ $programKerja->nama_proker }}" class="img-fluid w-100 rounded-4 mb-4" style="max-height: 360px; object-fit: cover;">
+        @endif
         <span class="badge text-bg-light text-pk mb-2">{{ $programKerja->kategori->value }}</span>
         <h1 class="h2 fw-bold text-pk">{{ $programKerja->nama_proker }}</h1>
         <p class="text-secondary">{{ $programKerja->deskripsi }}</p>
@@ -34,27 +35,32 @@
             <div class="col-md-6"><i class="bi bi-people me-2 text-pk"></i>Kuota {{ $programKerja->kuota }} peserta</div>
             <div class="col-md-6"><i class="bi bi-hourglass-split me-2 text-pk"></i>
                 Pendaftaran ditutup {{ $programKerja->batas_pendaftaran->translatedFormat('d F Y, H:i') }}</div>
-            <div class="col-md-6"><i class="bi bi-person-badge me-2 text-pk"></i>PIC: {{ $programKerja->pic->user->name }}</div>
+            <div class="col-md-6"><i class="bi bi-person-badge me-2 text-pk"></i>PIC: {{ $programKerja->pic->pengguna->name }}</div>
         </div>
+
+        @php($statusDaftar = $programKerja->labelStatusPendaftaran())
+        <div class="alert {{ $statusDaftar === 'Pendaftaran dibuka' ? 'alert-success' : 'alert-secondary' }} py-2">{{ $statusDaftar }}</div>
 
         <hr>
 
-        @guest
-            <a href="{{ route('login') }}" class="btn btn-pk-yellow fw-semibold">Masuk untuk mendaftar</a>
-        @endguest
-
-        @auth
-            @if (auth()->user()->role === Role::Mahasiswa)
-                <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            @auth
+                @if (auth()->user()->getRawOriginal('role') === 'MHS')
                     <a href="{{ route('pendaftaran.periksa', $programKerja) }}" class="btn btn-pk-yellow fw-semibold">
                         <i class="bi bi-pencil-square me-1"></i> Daftar
                     </a>
                     <a href="{{ route('pengingat.form', $programKerja) }}" class="btn btn-outline-secondary">
                         <i class="bi bi-bell me-1"></i> Aktifkan Pengingat
                     </a>
-                </div>
-            @endif
-        @endauth
+                @else
+                    <span class="small text-secondary">Masuk dengan akun mahasiswa untuk mendaftar.</span>
+                @endif
+            @else
+                <a href="{{ route('login') }}" class="btn btn-pk-yellow fw-semibold">
+                    <i class="bi bi-pencil-square me-1"></i> Masuk untuk mendaftar
+                </a>
+            @endauth
+        </div>
     </div>
 </div>
 @endsection

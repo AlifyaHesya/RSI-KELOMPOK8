@@ -6,14 +6,13 @@ use App\Enums\StatusPengajuan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** PengajuanModel pada class diagram. */
+/** Pengajuan program kerja dan kelengkapan berkas PIC. */
 class Pengajuan extends Model
 {
     protected $table = 'pengajuan';
 
     protected $primaryKey = 'id_pengajuan';
 
-    /** kolom berkas wajib => label yang ditampilkan di petunjuk dokumen kurang */
     public const BERKAS_WAJIB = [
         'berkas_proposal' => 'Proposal kegiatan',
         'berkas_rab' => 'Rincian anggaran (RAB)',
@@ -43,7 +42,6 @@ class Pengajuan extends Model
         return $this->belongsTo(ProgramKerja::class, 'id_proker', 'id_proker');
     }
 
-    /** Daftar label dokumen wajib yang belum diunggah (kosong = lengkap). */
     public function dokumenKurang(): array
     {
         return collect(self::BERKAS_WAJIB)
@@ -57,7 +55,7 @@ class Pengajuan extends Model
         return $this->dokumenKurang() === [];
     }
 
-    public function updateStatus(StatusPengajuan $status, ?string $catatan = null): bool
+    public function ubahStatus(StatusPengajuan $status, ?string $catatan = null): bool
     {
         $this->status_pengajuan = $status;
         $this->catatan = $catatan;

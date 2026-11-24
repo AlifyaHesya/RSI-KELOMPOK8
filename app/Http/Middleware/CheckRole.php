@@ -8,12 +8,12 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    /** Pemakaian di route: ->middleware('role:PIC') atau 'role:PIC,ADM' */
+    /** Pemakaian di route: ->middleware('role:PIC') atau 'role:MHS,PIC'. */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        if (! $user || ! in_array($user->role->value, $roles, true)) {
+        if (! $user || ! $user->role || ! in_array($user->role->value, $roles, true)) {
             abort(403, 'Anda tidak memiliki akses ke halaman ini.');
         }
 

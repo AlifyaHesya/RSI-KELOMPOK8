@@ -34,11 +34,6 @@ class Pengingat extends Model
         return $this->belongsTo(ProgramKerja::class, 'id_proker', 'id_proker');
     }
 
-    /**
-     * Sequence langkah 7: simpanPengaturanPengingat(idProker, idMahasiswa, waktuPengingat): statusSimpan.
-     * Dipanggil pada instance (controller memakai Pengingat::firstOrNew), sehingga
-     * $this->id_pengingat tersedia setelah berhasil disimpan.
-     */
     public function simpanPengaturanPengingat(int $idProker, int $idMahasiswa, DateTimeInterface $waktuPengingat): bool
     {
         try {
@@ -54,19 +49,12 @@ class Pengingat extends Model
         }
     }
 
-    /** getPengingat(idPengingat): Pengingat. */
     public static function getPengingat(int $idPengingat): ?self
     {
         return static::find($idPengingat);
     }
 
-    /**
-     * Sequence langkah 8 / PC-07-04: jadwalkanPengingat(idPengingat): statusPenjadwalan.
-     * Gagal bila pengingat tidak ditemukan atau waktunya sudah lewat.
-     *
-     * Pengiriman sebenarnya dilakukan command `pengingat:kirim` (scheduler tiap menit) terhadap
-     * pengingat berstatus aktif yang belum terkirim dan sudah jatuh tempo.
-     */
+    /** Pengiriman notifikasi dilakukan oleh scheduler `pengingat:kirim`. */
     public static function jadwalkanPengingat(int $idPengingat): bool
     {
         $pengingat = static::getPengingat($idPengingat);

@@ -19,7 +19,6 @@
 <div class="container py-5">
     <h1 class="h2 fw-bold text-pk mb-4">Katalog Program Kerja</h1>
 
-    {{-- UC-04: cari dan filter --}}
     <form method="GET" action="{{ route('katalog.index') }}" class="pk-card bg-white p-3 mb-4">
         <div class="row g-2">
             <div class="col-md-4">

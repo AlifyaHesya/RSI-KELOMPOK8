@@ -13,7 +13,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 /** UC-12 Rekap Data Peserta, UC-13 Laporan Kegiatan (PIC). PDF memakai barryvdh/laravel-dompdf. */
 class RekapLaporanController extends Controller
 {
-    /** getDaftarProgramKerjaPIC() */
     public function index()
     {
         $programKerja = auth()->user()->pic->programKerja()->withCount('pendaftaran')->latest()->get();
@@ -21,18 +20,16 @@ class RekapLaporanController extends Controller
         return view('pic.rekap.index', compact('programKerja'));
     }
 
-    /** getOpsiDokumen(): Rekap Data Peserta atau Laporan Kegiatan. */
-    public function opsiDokumen(ProgramKerja $programKerja)
+    public function tampilkanOpsiDokumen(ProgramKerja $programKerja)
     {
-        $this->pastikanMilik($programKerja);
+        $this->pastikanKepemilikan($programKerja);
 
         return view('pic.rekap.opsi', compact('programKerja'));
     }
 
-    /** periksaDataPeserta(): bila kosong tampilkan pesan, bila ada tampilkan pilihan format. */
-    public function periksaDataPeserta(ProgramKerja $programKerja)
+    public function tampilkanPilihanFormatRekap(ProgramKerja $programKerja)
     {
-        $this->pastikanMilik($programKerja);
+        $this->pastikanKepemilikan($programKerja);
 
         $peserta = Pendaftaran::ambilDataPeserta($programKerja->id_proker);
 
@@ -43,10 +40,9 @@ class RekapLaporanController extends Controller
         return view('pic.rekap.format', ['programKerja' => $programKerja, 'jumlah' => $peserta->count()]);
     }
 
-    /** buatRekapPeserta(idProker, formatBerkas): format = pdf | excel (CSV yang dapat dibuka di Excel). */
-    public function buatRekapPeserta(Request $request, ProgramKerja $programKerja)
+    public function unduhRekapPeserta(Request $request, ProgramKerja $programKerja)
     {
-        $this->pastikanMilik($programKerja);
+        $this->pastikanKepemilikan($programKerja);
 
         $data = $request->validate(['format' => ['required', 'in:pdf,excel']]);
         $peserta = Pendaftaran::ambilDataPeserta($programKerja->id_proker);
@@ -62,12 +58,12 @@ class RekapLaporanController extends Controller
                 ->download($namaFile.'.pdf');
         }
 
-        return $this->unduhCsv($peserta, $namaFile.'.csv');
+        return $this->unduhBerkasCsv($peserta, $namaFile.'.csv');
     }
 
-    public function formLaporan(ProgramKerja $programKerja)
+    public function tampilkanFormLaporan(ProgramKerja $programKerja)
     {
-        $this->pastikanMilik($programKerja);
+        $this->pastikanKepemilikan($programKerja);
 
         return view('pic.rekap.laporan', [
             'programKerja' => $programKerja,
@@ -75,10 +71,9 @@ class RekapLaporanController extends Controller
         ]);
     }
 
-    /** validasiDataLaporan() + simpanLaporan(): maksimal satu laporan per program kerja. */
     public function simpanLaporan(Request $request, ProgramKerja $programKerja): RedirectResponse
     {
-        $this->pastikanMilik($programKerja);
+        $this->pastikanKepemilikan($programKerja);
 
         $data = $request->validate([
             'ringkasan_kegiatan' => ['required', 'string'],
@@ -97,17 +92,16 @@ class RekapLaporanController extends Controller
         return redirect()->route('pic.rekap.opsi', $programKerja)->with('success', 'Laporan berhasil disimpan');
     }
 
-    /** unduhLaporan(idLaporan, formatBerkas): saat ini PDF. */
-    public function unduhLaporan(LaporanKegiatan $laporan)
+    public function unduhLaporanKegiatan(LaporanKegiatan $laporan)
     {
         $laporan->load('programKerja');
-        $this->pastikanMilik($laporan->programKerja);
+        $this->pastikanKepemilikan($laporan->programKerja);
 
         return Pdf::loadView('pdf.laporan', compact('laporan'))
             ->download('laporan-'.str($laporan->programKerja->nama_proker)->slug().'.pdf');
     }
 
-    private function unduhCsv($peserta, string $namaFile): StreamedResponse
+    private function unduhBerkasCsv($peserta, string $namaFile): StreamedResponse
     {
         return response()->streamDownload(function () use ($peserta) {
             $out = fopen('php://output', 'w');
@@ -118,8 +112,8 @@ class RekapLaporanController extends Controller
                 fputcsv($out, [
                     $i + 1,
                     $p->mahasiswa->nim,
-                    $p->mahasiswa->user->name,
-                    $p->mahasiswa->user->email,
+                    $p->mahasiswa->pengguna->name,
+                    $p->mahasiswa->pengguna->email,
                     $p->mahasiswa->program_studi,
                     $p->tanggal_pendaftaran->format('Y-m-d H:i'),
                 ], ',', '"', '\\');
@@ -129,7 +123,7 @@ class RekapLaporanController extends Controller
         }, $namaFile, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
-    private function pastikanMilik(ProgramKerja $programKerja): void
+    private function pastikanKepemilikan(ProgramKerja $programKerja): void
     {
         abort_unless((int) $programKerja->id_pic === (int) auth()->user()->pic->id_pic, 403);
     }

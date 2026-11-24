@@ -25,8 +25,8 @@
             <tr>
                 <td>{{ $i + 1 }}</td>
                 <td>{{ $p->mahasiswa->nim }}</td>
-                <td>{{ $p->mahasiswa->user->name }}</td>
-                <td>{{ $p->mahasiswa->user->email }}</td>
+                <td>{{ $p->mahasiswa->pengguna->name }}</td>
+                <td>{{ $p->mahasiswa->pengguna->email }}</td>
                 <td>{{ $p->mahasiswa->program_studi }}</td>
                 <td>{{ $p->tanggal_pendaftaran->format('d-m-Y H:i') }}</td>
             </tr>

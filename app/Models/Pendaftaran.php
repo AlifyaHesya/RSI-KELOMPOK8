@@ -34,10 +34,6 @@ class Pendaftaran extends Model
         return $this->belongsTo(ProgramKerja::class, 'id_proker', 'id_proker');
     }
 
-    /**
-     * Sequence langkah 4: cekRiwayatPendaftaran(idProker, idMahasiswa): statusPendaftaran.
-     * true = mahasiswa sudah terdaftar pada proker tersebut.
-     */
     public static function cekRiwayatPendaftaran(int $idProker, int $idMahasiswa): bool
     {
         return static::where('id_proker', $idProker)
@@ -46,13 +42,6 @@ class Pendaftaran extends Model
             ->exists();
     }
 
-    /**
-     * Sequence langkah 10: simpanPendaftaran(dataPendaftaran): statusSimpan.
-     * $dataPendaftaran wajib berisi id_mahasiswa dan id_proker.
-     *
-     * Status buka, kuota, dan riwayat diperiksa ulang di dalam transaksi dengan kunci baris proker,
-     * agar dua pendaftar bersamaan tidak melewati kuota (pemeriksaan di controller bisa sudah usang).
-     */
     public function simpanPendaftaran(array $dataPendaftaran): bool
     {
         try {
@@ -78,10 +67,9 @@ class Pendaftaran extends Model
         }
     }
 
-    /** ambilDataPeserta(): peserta aktif sebuah proker, urut berdasarkan waktu daftar. */
     public static function ambilDataPeserta(int $idProker): Collection
     {
-        return static::with('mahasiswa.user')
+        return static::with('mahasiswa.pengguna')
             ->where('id_proker', $idProker)
             ->where('status_pendaftaran', true)
             ->orderBy('tanggal_pendaftaran')

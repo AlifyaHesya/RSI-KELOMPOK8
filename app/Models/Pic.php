@@ -12,9 +12,9 @@ class Pic extends Model
 
     protected $primaryKey = 'id_pic';
 
-    protected $fillable = ['user_id'];
+    protected $fillable = ['user_id', 'biro'];
 
-    public function user(): BelongsTo
+    public function pengguna(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }

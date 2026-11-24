@@ -9,17 +9,14 @@ use DateTimeInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 
-/**
- * <<controller>> PengingatController, UC-07 Mengaktifkan Notifikasi Pengingat.
- *
- * Bagian A mengikuti class diagram + pseudo-code PC-07-01..04.
- * Bagian B adalah handler HTTP tipis untuk route Laravel.
- */
+/** Pengingat pendaftaran mahasiswa (UC-07). */
 class PengingatController extends Controller
 {
-    // ===== A. Sesuai class diagram =====
+    // Aturan pengingat
 
     private Mahasiswa $mahasiswa;
 
@@ -27,16 +24,10 @@ class PengingatController extends Controller
 
     private ProgramKerja $programKerja;
 
-    /** statusPengingat (PC-07-03): pesan hasil aktifkanPengingat() untuk konfirmasi / error. */
     private string $pesan = '';
 
-    /** false bila aktifkanPengingat() berhenti karena waktu tidak valid (error tampil di form). */
     private bool $waktuValid = true;
 
-    /**
-     * PC-07-01, langkah 2–3: ambil tanggalDeadline (batas pendaftaran) program kerja.
-     * Mengembalikan null bila informasi batas pendaftaran tidak tersedia.
-     */
     public function getInformasiPengingat(int $idProker): ?Carbon
     {
         $this->programKerja = ProgramKerja::findOrFail($idProker);
@@ -44,10 +35,6 @@ class PengingatController extends Controller
         return $this->programKerja->ambilBatasPendaftaran();                                   // 3
     }
 
-    /**
-     * PC-07-02: waktu valid jika lebih dari sekarang dan sebelum tanggalDeadline.
-     * $this->programKerja harus sudah terisi (lewat getInformasiPengingat / aktifkanPengingat).
-     */
     public function validasiWaktuPengingat(DateTimeInterface $waktuPengingat): bool
     {
         $tanggalDeadline = isset($this->programKerja)
@@ -63,12 +50,6 @@ class PengingatController extends Controller
         return $waktu->gt(now()) && $waktu->lt($tanggalDeadline);
     }
 
-    /**
-     * PC-07-03, langkah 6: validasi -> simpan pengaturan (7) -> jadwalkan (8).
-     * Mengembalikan statusPenjadwalan; teks statusnya ada di $this->pesan.
-     *
-     * Urutan parameter mengikuti sequence diagram: (idProker, idMahasiswa, waktuPengingat).
-     */
     public function aktifkanPengingat(int $idProker, int $idMahasiswa, DateTimeInterface $waktuPengingat): bool
     {
         $this->programKerja = ProgramKerja::findOrFail($idProker);
@@ -81,10 +62,10 @@ class PengingatController extends Controller
             return false;
         }
 
-        // pengingat yang sama (mahasiswa + proker) dipakai ulang, bukan dibuat ganda
         $this->pengingat = Pengingat::firstOrNew([
             'id_proker' => $idProker,
             'id_mahasiswa' => $idMahasiswa,
+            'waktu_pengingat' => Carbon::instance($waktuPengingat)->toDateTimeString(),
         ]);
 
         $statusSimpan = $this->pengingat->simpanPengaturanPengingat($idProker, $idMahasiswa, $waktuPengingat); // 7
@@ -102,64 +83,86 @@ class PengingatController extends Controller
         return $statusPenjadwalan;
     }
 
-    /** PC-07-04: meneruskan ke Pengingat::jadwalkanPengingat(). */
     public function jadwalkanPengingat(int $idPengingat): bool
     {
         return Pengingat::jadwalkanPengingat($idPengingat);
     }
 
-    // ===== B. Handler HTTP (adapter Laravel, bukan bagian class diagram) =====
 
-    /** Langkah 1–4: tombol "Aktifkan Pengingat" di HalamanDetailProgramKerja. */
-    public function formPengingat(ProgramKerja $programKerja): View|RedirectResponse
+    public function tampilkanFormPengingat(ProgramKerja $programKerja): View|RedirectResponse
     {
         abort_unless($programKerja->dipublikasi, 404);
 
-        $tanggalDeadline = $this->getInformasiPengingat($programKerja->id_proker);              // 2–3
+        $tanggalDeadline = $this->getInformasiPengingat($programKerja->id_proker);
 
         if ($tanggalDeadline === null) {
             return redirect()->route('katalog.show', $programKerja)
                 ->with('pesan', 'Informasi batas pendaftaran tidak tersedia');
         }
 
-        // alur alternatif UC-07 A: pendaftaran sudah ditutup
         if ($tanggalDeadline->isPast()) {
             return redirect()->route('katalog.show', $programKerja)
                 ->with('pesan', 'Pengingat tidak dapat diaktifkan karena pendaftaran sudah ditutup');
         }
 
-        // 4: FormPengingat::tampilkanPilihanWaktu(tanggalDeadline)
-        return view('pengingat.form', [
+        $this->mahasiswa = auth()->user()->mahasiswa;
+        $waktuTerpilih = $this->mahasiswa->pengingat()
+            ->where('id_proker', $programKerja->id_proker)
+            ->pluck('waktu_pengingat')
+            ->map(fn ($waktu) => Carbon::parse($waktu)->format('Y-m-d\\TH:i'))
+            ->all();
+
+        return view('mahasiswa.pengingat', [
             'programKerja' => $this->programKerja,
             'tanggalDeadline' => $tanggalDeadline,
+            'waktuTerpilih' => $waktuTerpilih,
         ]);
     }
 
-    /** Langkah 5–6: FormPengingat::pilihWaktuPengingat() lalu aktifkanPengingat(). */
-    public function prosesPengingat(Request $request, ProgramKerja $programKerja): RedirectResponse
+    public function simpanPengingat(Request $request, ProgramKerja $programKerja): RedirectResponse
     {
         abort_unless($programKerja->dipublikasi, 404);
 
-        // hanya format; aturan waktu (> sekarang, < deadline) ada di validasiWaktuPengingat()
-        $data = $request->validate(['waktu_pengingat' => ['required', 'date']]);
+        $data = $request->validate([
+            'waktu_pengingat' => ['required', 'array', 'min:1'],
+            'waktu_pengingat.*' => ['required', 'date'],
+        ], [
+            'waktu_pengingat.required' => 'Pilih setidaknya satu jadwal pengingat.',
+            'waktu_pengingat.min' => 'Pilih setidaknya satu jadwal pengingat.',
+        ]);
 
         $this->mahasiswa = auth()->user()->mahasiswa;
+        $this->programKerja = $programKerja;
+        $waktuPilihan = collect($data['waktu_pengingat'])
+            ->map(fn ($waktu) => Carbon::parse($waktu)->startOfMinute())
+            ->unique(fn (Carbon $waktu) => $waktu->toDateTimeString())
+            ->values();
 
-        $statusPenjadwalan = $this->aktifkanPengingat(
-            $programKerja->id_proker,
-            $this->mahasiswa->id_mahasiswa,
-            Carbon::parse($data['waktu_pengingat'])
-        );
-
-        if (! $this->waktuValid) {
-            // PC-07-03: pesan error tampil di FormPengingat
-            return back()->withErrors(['waktu_pengingat' => $this->pesan])->withInput();
+        foreach ($waktuPilihan as $urutan => $waktu) {
+            if (! $this->validasiWaktuPengingat($waktu)) {
+                throw ValidationException::withMessages([
+                    "waktu_pengingat.{$urutan}" => 'Setiap pengingat harus sebelum batas pendaftaran dan masih di masa depan.',
+                ]);
+            }
         }
 
-        // 9: HalamanDetailProgramKerja::tampilkanKonfirmasi(statusPenjadwalan)
-        return redirect()->route('katalog.show', $programKerja)->with('konfirmasi', [
-            'berhasil' => $statusPenjadwalan,
-            'pesan' => $this->pesan,
-        ]);
+        DB::transaction(function () use ($programKerja, $waktuPilihan) {
+            $waktuSimpan = $waktuPilihan->map(fn (Carbon $waktu) => $waktu->toDateTimeString())->all();
+
+            $this->mahasiswa->pengingat()
+                ->where('id_proker', $programKerja->id_proker)
+                ->whereNotIn('waktu_pengingat', $waktuSimpan)
+                ->delete();
+
+            foreach ($waktuPilihan as $waktu) {
+                if (! $this->aktifkanPengingat($programKerja->id_proker, $this->mahasiswa->id_mahasiswa, $waktu)) {
+                    throw ValidationException::withMessages([
+                        'waktu_pengingat' => 'Pengingat gagal disimpan. Silakan coba lagi.',
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('pengingat.form', $programKerja)->with('success', 'Jadwal pengingat berhasil disimpan.');
     }
 }

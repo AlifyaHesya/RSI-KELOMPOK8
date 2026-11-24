@@ -19,7 +19,7 @@ class ProgramKerja extends Model
     protected $fillable = [
         'id_pic', 'nama_proker', 'deskripsi', 'kuota', 'lokasi', 'biro', 'kategori',
         'tanggal_pelaksanaan', 'waktu_pelaksanaan', 'tanggal_buka_pendaftaran',
-        'batas_pendaftaran', 'status_buka', 'dipublikasi',
+        'batas_pendaftaran', 'status_buka', 'dipublikasi', 'poster_path',
     ];
 
     protected function casts(): array
@@ -64,16 +64,12 @@ class ProgramKerja extends Model
         return $query->where('dipublikasi', true);
     }
 
-    /** Waktu mulai pelaksanaan (tanggal + jam) dalam satu objek Carbon. */
     public function waktuMulai(): Carbon
     {
         return $this->tanggal_pelaksanaan->copy()->setTimeFromTimeString($this->waktu_pelaksanaan);
     }
 
-    /**
-     * Sequence langkah 3: cekStatusPendaftaran(idProker): statusBuka.
-     * Objek ini sudah mewakili idProker. Terbuka jika dipublikasi, dibuka PIC, dan dalam rentang waktu.
-     */
+    /** Status pendaftaran efektif berdasarkan publikasi, izin PIC, dan jendela waktu. */
     public function cekStatusPendaftaran(): bool
     {
         return $this->dipublikasi
@@ -81,13 +77,33 @@ class ProgramKerja extends Model
             && now()->between($this->tanggal_buka_pendaftaran, $this->batas_pendaftaran);
     }
 
-    /** Sequence langkah 5: cekKuotaTersedia(idProker): kuotaTersedia. Dihitung dari jumlah pendaftar. */
-    public function cekKuotaTersedia(): bool
+    /** Label status yang bisa ditampilkan mahasiswa, dihitung dari waktu WIB dan kuota saat ini. */
+    public function labelStatusPendaftaran(): string
     {
-        return $this->pendaftaran()->count() < $this->kuota;
+        if (now()->lt($this->tanggal_buka_pendaftaran)) {
+            return 'Dibuka '.$this->tanggal_buka_pendaftaran->translatedFormat('d M Y, H:i');
+        }
+
+        if (now()->gt($this->batas_pendaftaran)) {
+            return 'Pendaftaran ditutup';
+        }
+
+        if (! $this->status_buka) {
+            return 'Pendaftaran ditutup oleh PIC';
+        }
+
+        return $this->cekKuotaTersedia() ? 'Pendaftaran dibuka' : 'Kuota penuh';
     }
 
-    /** Sequence langkah 3: ambilBatasPendaftaran(idProker): tanggalDeadline. */
+    public function cekKuotaTersedia(): bool
+    {
+        $jumlahTerdaftar = array_key_exists('pendaftaran_count', $this->attributes)
+            ? (int) $this->attributes['pendaftaran_count']
+            : $this->pendaftaran()->where('status_pendaftaran', true)->count();
+
+        return $jumlahTerdaftar < $this->kuota;
+    }
+
     public function ambilBatasPendaftaran(): ?Carbon
     {
         return $this->batas_pendaftaran;

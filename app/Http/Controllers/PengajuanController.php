@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StatusPengajuan;
-use App\Models\Notifikasi;
 use App\Models\Pengajuan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +25,7 @@ class PengajuanController extends Controller
 
     public function show(Pengajuan $pengajuan)
     {
-        $this->pastikanMilik($pengajuan);
+        $this->pastikanKepemilikan($pengajuan);
 
         return view('pic.pengajuan.show', [
             'pengajuan' => $pengajuan->load('programKerja'),
@@ -36,8 +35,19 @@ class PengajuanController extends Controller
 
     public function unggahBerkas(Request $request, Pengajuan $pengajuan): RedirectResponse
     {
-        $this->pastikanMilik($pengajuan);
+        $this->pastikanKepemilikan($pengajuan);
         abort_unless($pengajuan->bisaDiubahPic(), 403);
+
+        $adaBerkasBaru = collect(array_keys(Pengajuan::BERKAS_WAJIB))
+            ->contains(fn (string $kolom) => $request->hasFile($kolom));
+        $tautanBerubah = $request->filled('link_bukti')
+            && trim((string) $request->input('link_bukti')) !== trim((string) $pengajuan->link_bukti);
+
+        if (! $adaBerkasBaru && ! $tautanBerubah) {
+            return back()
+                ->withInput()
+                ->with('error', 'Pilih berkas untuk diunggah atau masukkan tautan bukti yang baru.');
+        }
 
         $data = $request->validate([
             'berkas_proposal' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
@@ -65,13 +75,9 @@ class PengajuanController extends Controller
         return back()->with('success', 'Berkas berhasil diunggah');
     }
 
-    /**
-     * submitPengajuan(): PIC menekan "Ajukan". Jika berkas kurang, tolak dengan petunjuk dokumen;
-     * jika lengkap, minta konfirmasi (dialog Konfirmasi/Batal di UI).
-     */
-    public function submitPengajuan(Pengajuan $pengajuan): RedirectResponse
+    public function ajukanPengajuan(Pengajuan $pengajuan): RedirectResponse
     {
-        $this->pastikanMilik($pengajuan);
+        $this->pastikanKepemilikan($pengajuan);
         abort_unless($pengajuan->bisaDiubahPic(), 403);
 
         if (! $pengajuan->cekBerkasLengkap()) {
@@ -80,34 +86,35 @@ class PengajuanController extends Controller
                 ->with('dokumen_kurang', $pengajuan->dokumenKurang());
         }
 
-        return back()->with('perlu_konfirmasi', true);
+        $this->setujuiDanPublikasikan($pengajuan);
+
+        return redirect()->route('pic.pengajuan.index')->with('success', 'Pengajuan langsung disetujui dan program kerja dipublikasikan');
     }
 
-    /**
-     * prosesPengajuan(): PIC menekan "Konfirmasi". Status menjadi "Menunggu Konfirmasi"
-     * (sesuai output pseudo-code PC-10-02) lalu Super Admin diberi notifikasi.
-     */
-    public function prosesPengajuan(Pengajuan $pengajuan): RedirectResponse
+    public function setujuiPengajuan(Pengajuan $pengajuan): RedirectResponse
     {
-        $this->pastikanMilik($pengajuan);
+        $this->pastikanKepemilikan($pengajuan);
         abort_unless($pengajuan->bisaDiubahPic(), 403);
 
         if (! $pengajuan->cekBerkasLengkap()) {
             return back()->with('error', 'Pengajuan gagal diproses, berkas belum lengkap');
         }
 
-        DB::transaction(function () use ($pengajuan) {
-            $pengajuan->updateStatus(StatusPengajuan::Menunggu);
-            Notifikasi::buatNotificationForAdmin(
-                "Pengajuan program kerja baru menunggu verifikasi: {$pengajuan->nama_proker}"
-            );
-        });
+        $this->setujuiDanPublikasikan($pengajuan);
 
-        return redirect()->route('pic.pengajuan.index')->with('success', 'Pengajuan berhasil dikirim');
+        return redirect()->route('pic.pengajuan.index')->with('success', 'Program kerja disetujui dan dipublikasikan');
     }
 
-    private function pastikanMilik(Pengajuan $pengajuan): void
+    private function pastikanKepemilikan(Pengajuan $pengajuan): void
     {
         abort_unless((int) $pengajuan->id_pic === (int) auth()->user()->pic->id_pic, 403);
+    }
+
+    private function setujuiDanPublikasikan(Pengajuan $pengajuan): void
+    {
+        DB::transaction(function () use ($pengajuan) {
+            $pengajuan->ubahStatus(StatusPengajuan::Disetujui);
+            $pengajuan->programKerja()->update(['dipublikasi' => true, 'status_buka' => true]);
+        });
     }
 }

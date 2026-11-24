@@ -3,40 +3,57 @@
 namespace App\Http\Controllers;
 
 use App\Enums\KategoriProker;
+use App\Models\Pendaftaran;
 use App\Models\ProgramKerja;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /** UC-03 Katalog, UC-04 Cari & Filter, UC-05 Detail, UC-08 Berdasarkan Tanggal. */
 class KatalogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ProgramKerja::dipublikasi()->with('pic.user');
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'kategori' => ['nullable', Rule::in(array_map(fn ($item) => $item->value, KategoriProker::cases()))],
+            'tanggal' => ['nullable', 'date'],
+            'biro' => ['nullable', 'string', 'max:100'],
+        ]);
 
-        if ($request->filled('q')) {
-            $query->where('nama_proker', 'like', '%'.$request->input('q').'%');
+        $query = ProgramKerja::dipublikasi()
+            ->with('pic.pengguna')
+            ->withCount(['pendaftaran' => fn ($query) => $query->where('status_pendaftaran', true)]);
+
+        if (! empty($filters['q'])) {
+            $query->where('nama_proker', 'like', '%'.$filters['q'].'%');
         }
-        if ($request->filled('kategori')) {
-            $query->where('kategori', $request->input('kategori'));
+        if (! empty($filters['kategori'])) {
+            $query->where('kategori', $filters['kategori']);
         }
-        if ($request->filled('biro')) {
-            $query->where('biro', $request->input('biro'));
+        if (! empty($filters['tanggal'])) {
+            $query->whereDate('tanggal_pelaksanaan', $filters['tanggal']);
         }
-        if ($request->filled('tanggal')) {
-            $query->whereDate('tanggal_pelaksanaan', $request->input('tanggal'));
+        if (! empty($filters['biro'])) {
+            $query->where('biro', 'like', '%'.$filters['biro'].'%');
         }
 
-        return view('katalog.index', [
-            'programKerja' => $query->orderBy('tanggal_pelaksanaan')->paginate(12)->withQueryString(),
+        return view('mahasiswa.beranda', [
+            'programKerja' => $query->latest()->paginate(6)->withQueryString(),
             'kategori' => KategoriProker::cases(),
+            'ringkasan' => [
+                'program' => ProgramKerja::dipublikasi()->count(),
+                'biro' => ProgramKerja::dipublikasi()->distinct()->count('biro'),
+                'peserta' => Pendaftaran::whereHas('programKerja', fn ($query) => $query->dipublikasi())->count(),
+            ],
         ]);
     }
 
-    /** tampilkanDetailProgramKerja(). Pesan dari PendaftaranController (flash 'pesan') ditampilkan oleh view. */
     public function show(ProgramKerja $programKerja)
     {
         abort_unless($programKerja->dipublikasi, 404);
 
-        return view('katalog.show', ['programKerja' => $programKerja->load('pic.user')]);
+        $programKerja->load('pic.pengguna')->loadCount(['pendaftaran' => fn ($query) => $query->where('status_pendaftaran', true)]);
+
+        return view('katalog.detail', compact('programKerja'));
     }
 }
