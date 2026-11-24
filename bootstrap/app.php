@@ -14,7 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
        $middleware->alias(['role' => \App\Http\Middleware\CheckRole::class]);
      })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $exception) {
+            return response()->view('errors.413', status: 413);
+        });
     })->create();
 
      

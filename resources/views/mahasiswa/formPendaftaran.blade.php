@@ -55,7 +55,7 @@
                 <p class="text-secondary">Isi data dengan benar untuk mempercepat proses verifikasi.</p>
 
                 @if ($errors->any())
-                    <div id="tampilkanPesanValidasi" class="alert alert-danger small">
+                    <div id="tampilkanPesanError" class="alert alert-danger small">
                         <div class="fw-semibold mb-1"><i class="bi bi-exclamation-circle me-1"></i> Data tidak lengkap atau tidak valid</div>
                         <ul class="mb-0 ps-3">
                             @foreach ($errors->all() as $pesan)
@@ -65,7 +65,7 @@
                     </div>
                 @endif
 
-                <form id="kirimDataPendaftaran" method="POST" action="{{ route('pendaftaran.simpan', $programKerja) }}" class="row g-3" novalidate>
+                <form id="isiFormPendaftaran" method="POST" action="{{ route('pendaftaran.simpan', $programKerja) }}" class="row g-3" novalidate>
                     @csrf
 
                     <div class="col-12"><h2 class="h5 fw-bold text-pk mb-0">Data Pribadi</h2>

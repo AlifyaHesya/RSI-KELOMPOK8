@@ -48,13 +48,13 @@ Route::get('/proker/{programKerja}', [KatalogController::class, 'show'])->name('
 
 /* ---------- Mahasiswa: UC-06, UC-07 ---------- */
 Route::middleware(['auth', 'role:MHS'])->group(function () {
-    Route::get('/proker/{programKerja}/daftar', [PendaftaranController::class, 'tampilkanFormPendaftaran'])->name('pendaftaran.periksa');
-    Route::post('/proker/{programKerja}/daftar', [PendaftaranController::class, 'kirimPendaftaran'])->name('pendaftaran.simpan');
+    Route::get('/proker/{programKerja}/daftar', [PendaftaranController::class, 'periksaPendaftaran'])->name('pendaftaran.periksa');
+    Route::post('/proker/{programKerja}/daftar', [PendaftaranController::class, 'kirimDataPendaftaran'])->name('pendaftaran.simpan');
     Route::get('/pendaftaran', [PendaftaranController::class, 'index'])->name('pendaftaran.index');
     Route::get('/pendaftaran/{pendaftaran}', [PendaftaranController::class, 'tampilkanKonfirmasi'])->name('pendaftaran.konfirmasi');
 
-    Route::get('/proker/{programKerja}/pengingat', [PengingatController::class, 'tampilkanFormPengingat'])->name('pengingat.form');
-    Route::post('/proker/{programKerja}/pengingat', [PengingatController::class, 'simpanPengingat'])->name('pengingat.simpan');
+    Route::get('/proker/{programKerja}/pengingat', [PengingatController::class, 'tampilkanPilihanWaktu'])->name('pengingat.form');
+    Route::post('/proker/{programKerja}/pengingat', [PengingatController::class, 'aktifkanPengingat'])->name('pengingat.simpan');
 });
 
 /* ---------- PIC: UC-09 s.d. UC-13 ---------- */

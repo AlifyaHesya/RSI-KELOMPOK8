@@ -70,8 +70,12 @@ class ProgramKerja extends Model
     }
 
     /** Status pendaftaran efektif berdasarkan publikasi, izin PIC, dan jendela waktu. */
-    public function cekStatusPendaftaran(): bool
+    public function cekStatusPendaftaran(?int $idProker = null): bool
     {
+        if ($idProker !== null && (int) $this->getKey() !== $idProker) {
+            return false;
+        }
+
         return $this->dipublikasi
             && $this->status_buka
             && now()->between($this->tanggal_buka_pendaftaran, $this->batas_pendaftaran);
@@ -95,8 +99,12 @@ class ProgramKerja extends Model
         return $this->cekKuotaTersedia() ? 'Pendaftaran dibuka' : 'Kuota penuh';
     }
 
-    public function cekKuotaTersedia(): bool
+    public function cekKuotaTersedia(?int $idProker = null): bool
     {
+        if ($idProker !== null && (int) $this->getKey() !== $idProker) {
+            return false;
+        }
+
         $jumlahTerdaftar = array_key_exists('pendaftaran_count', $this->attributes)
             ? (int) $this->attributes['pendaftaran_count']
             : $this->pendaftaran()->where('status_pendaftaran', true)->count();
@@ -104,8 +112,12 @@ class ProgramKerja extends Model
         return $jumlahTerdaftar < $this->kuota;
     }
 
-    public function ambilBatasPendaftaran(): ?Carbon
+    public function ambilBatasPendaftaran(int $idProker): ?Carbon
     {
+        if ((int) $this->getKey() !== $idProker) {
+            return null;
+        }
+
         return $this->batas_pendaftaran;
     }
 }

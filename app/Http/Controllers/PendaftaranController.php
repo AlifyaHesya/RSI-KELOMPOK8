@@ -21,13 +21,13 @@ class PendaftaranController extends Controller
 
     private string $alasan = '';
 
-    public function periksaPendaftaran(int $idProker, int $idMahasiswa): bool
+    private function cekKelayakanPendaftaran(int $idProker, int $idMahasiswa): bool
     {
         $this->programKerja = ProgramKerja::findOrFail($idProker);
 
-        $statusBuka = $this->programKerja->cekStatusPendaftaran();
+        $statusBuka = $this->programKerja->cekStatusPendaftaran($idProker);
         $statusPendaftaran = Pendaftaran::cekRiwayatPendaftaran($idProker, $idMahasiswa);
-        $kuotaTersedia = $this->programKerja->cekKuotaTersedia();
+        $kuotaTersedia = $this->programKerja->cekKuotaTersedia($idProker);
 
         if (! $statusPendaftaran && $kuotaTersedia && $statusBuka) {
             return true;
@@ -49,12 +49,6 @@ class PendaftaranController extends Controller
         return $this->pendaftaran->simpanPendaftaran($dataPendaftaran);
     }
 
-    public function validasiDataPendaftaran(array $dataPendaftaran): bool
-    {
-        $this->mahasiswa ??= Mahasiswa::findOrFail($dataPendaftaran['id_mahasiswa']);
-
-        return $this->mahasiswa->validasiDataMahasiswa($dataPendaftaran);
-    }
 
     public function index(): View
     {
@@ -68,21 +62,26 @@ class PendaftaranController extends Controller
         ]);
     }
 
-    public function tampilkanFormPendaftaran(ProgramKerja $programKerja): View|RedirectResponse
+    public function periksaPendaftaran(ProgramKerja $programKerja): View|RedirectResponse
     {
         $this->mahasiswa = auth()->user()->mahasiswa;
 
-        if ($this->periksaPendaftaran($programKerja->id_proker, $this->mahasiswa->id_mahasiswa)) {
-            return view('mahasiswa.formPendaftaran', [
-                'programKerja' => $this->programKerja,
-                'mahasiswa' => $this->mahasiswa,
-            ]);
+        if ($this->cekKelayakanPendaftaran($programKerja->id_proker, $this->mahasiswa->id_mahasiswa)) {
+            return $this->tampilkanFormPendaftaran($programKerja);
         }
 
         return redirect()->route('katalog.show', $programKerja)->with('pesan', $this->alasan);
     }
 
-    public function kirimPendaftaran(Request $request, ProgramKerja $programKerja): RedirectResponse
+    private function tampilkanFormPendaftaran(ProgramKerja $programKerja): View
+    {
+        return view('mahasiswa.formPendaftaran', [
+            'programKerja' => $programKerja,
+            'mahasiswa' => $this->mahasiswa,
+        ]);
+    }
+
+    public function kirimDataPendaftaran(Request $request, ProgramKerja $programKerja): RedirectResponse
     {
         $this->mahasiswa = auth()->user()->mahasiswa;
 
@@ -91,7 +90,7 @@ class PendaftaranController extends Controller
             'id_proker' => $programKerja->id_proker,
         ];
 
-        if (! $this->validasiDataPendaftaran($dataPendaftaran)) {
+        if (! $this->mahasiswa->validasiDataMahasiswa($dataPendaftaran)) {
             return back()->withErrors($this->mahasiswa->kesalahanValidasi)->withInput();
         }
 
@@ -112,7 +111,7 @@ class PendaftaranController extends Controller
         );
 
         return view('mahasiswa.konfirmasi-pendaftaran', [
-            'statusSimpan' => true,
+            'statusSimpan' => (bool) $pendaftaran->status_pendaftaran,
             'pendaftaran' => $pendaftaran->load(['programKerja', 'mahasiswa.pengguna']),
         ]);
     }

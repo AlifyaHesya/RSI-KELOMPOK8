@@ -32,13 +32,13 @@ class PengingatController extends Controller
     {
         $this->programKerja = ProgramKerja::findOrFail($idProker);
 
-        return $this->programKerja->ambilBatasPendaftaran();                                   // 3
+        return $this->programKerja->ambilBatasPendaftaran($idProker);                                   // 3
     }
 
     public function validasiWaktuPengingat(DateTimeInterface $waktuPengingat): bool
     {
         $tanggalDeadline = isset($this->programKerja)
-            ? $this->programKerja->ambilBatasPendaftaran()
+            ? $this->programKerja->ambilBatasPendaftaran($this->programKerja->id_proker)
             : null;
 
         if ($tanggalDeadline === null) {
@@ -50,7 +50,7 @@ class PengingatController extends Controller
         return $waktu->gt(now()) && $waktu->lt($tanggalDeadline);
     }
 
-    public function aktifkanPengingat(int $idProker, int $idMahasiswa, DateTimeInterface $waktuPengingat): bool
+    private function simpanDanJadwalkanPengingat(int $idProker, int $idMahasiswa, DateTimeInterface $waktuPengingat): bool
     {
         $this->programKerja = ProgramKerja::findOrFail($idProker);
 
@@ -76,20 +76,15 @@ class PengingatController extends Controller
             return false;
         }
 
-        $statusPenjadwalan = $this->jadwalkanPengingat($this->pengingat->id_pengingat);                         // 8
+        $statusPenjadwalan = $this->pengingat->jadwalkanPengingat();                         // 8
 
         $this->pesan = $statusPenjadwalan ? 'Pengingat berhasil diaktifkan' : 'Pengingat gagal dijadwalkan';
 
         return $statusPenjadwalan;
     }
 
-    public function jadwalkanPengingat(int $idPengingat): bool
-    {
-        return Pengingat::jadwalkanPengingat($idPengingat);
-    }
 
-
-    public function tampilkanFormPengingat(ProgramKerja $programKerja): View|RedirectResponse
+    public function tampilkanPilihanWaktu(ProgramKerja $programKerja): View|RedirectResponse
     {
         abort_unless($programKerja->dipublikasi, 404);
 
@@ -119,7 +114,7 @@ class PengingatController extends Controller
         ]);
     }
 
-    public function simpanPengingat(Request $request, ProgramKerja $programKerja): RedirectResponse
+    public function aktifkanPengingat(Request $request, ProgramKerja $programKerja): RedirectResponse
     {
         abort_unless($programKerja->dipublikasi, 404);
 
@@ -155,7 +150,7 @@ class PengingatController extends Controller
                 ->delete();
 
             foreach ($waktuPilihan as $waktu) {
-                if (! $this->aktifkanPengingat($programKerja->id_proker, $this->mahasiswa->id_mahasiswa, $waktu)) {
+                if (! $this->simpanDanJadwalkanPengingat($programKerja->id_proker, $this->mahasiswa->id_mahasiswa, $waktu)) {
                     throw ValidationException::withMessages([
                         'waktu_pengingat' => 'Pengingat gagal disimpan. Silakan coba lagi.',
                     ]);

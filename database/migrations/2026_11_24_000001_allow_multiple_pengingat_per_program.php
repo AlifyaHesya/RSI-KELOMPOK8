@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pengingat', function (Blueprint $table) {
-            $table->dropForeign('pengingat_id_mahasiswa_foreign');
-            $table->dropForeign('pengingat_id_proker_foreign');
+            $table->dropForeign(['id_mahasiswa']);
+            $table->dropForeign(['id_proker']);
             $table->dropUnique('pengingat_id_mahasiswa_id_proker_unique');
             $table->unique(
                 ['id_mahasiswa', 'id_proker', 'waktu_pengingat'],
@@ -24,8 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pengingat', function (Blueprint $table) {
-            $table->dropForeign('pengingat_id_mahasiswa_foreign');
-            $table->dropForeign('pengingat_id_proker_foreign');
+            $table->dropForeign(['id_mahasiswa']);
+            $table->dropForeign(['id_proker']);
             $table->dropUnique('pengingat_mahasiswa_proker_waktu_unique');
             $table->unique(['id_mahasiswa', 'id_proker']);
             $table->foreign('id_mahasiswa')->references('id_mahasiswa')->on('mahasiswa')->cascadeOnDelete();

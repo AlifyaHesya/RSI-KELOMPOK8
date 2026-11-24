@@ -11,7 +11,7 @@
 <div class="container py-5" style="max-width: 860px">
 
     @if (session('pesan'))
-        <div class="alert alert-warning">{{ session('pesan') }}</div>
+        <div id="tampilkanPesan" class="alert alert-warning">{{ session('pesan') }}</div>
     @endif
     @if (session('konfirmasi'))
         <div class="alert {{ session('konfirmasi')['berhasil'] ? 'alert-success' : 'alert-danger' }}">
@@ -46,7 +46,7 @@
         <div class="d-flex flex-wrap align-items-center gap-2">
             @auth
                 @if (auth()->user()->getRawOriginal('role') === 'MHS')
-                    <a href="{{ route('pendaftaran.periksa', $programKerja) }}" class="btn btn-pk-yellow fw-semibold">
+                    <a id="pilihDaftar" href="{{ route('pendaftaran.periksa', $programKerja) }}" class="btn btn-pk-yellow fw-semibold">
                         <i class="bi bi-pencil-square me-1"></i> Daftar
                     </a>
                     <a href="{{ route('pengingat.form', $programKerja) }}" class="btn btn-outline-secondary">

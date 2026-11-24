@@ -49,21 +49,15 @@ class Pengingat extends Model
         }
     }
 
-    public static function getPengingat(int $idPengingat): ?self
-    {
-        return static::find($idPengingat);
-    }
 
     /** Pengiriman notifikasi dilakukan oleh scheduler `pengingat:kirim`. */
-    public static function jadwalkanPengingat(int $idPengingat): bool
+    public function jadwalkanPengingat(): bool
     {
-        $pengingat = static::getPengingat($idPengingat);
-
-        if (! $pengingat || $pengingat->waktu_pengingat->isPast()) {
+        if (! $this->exists || $this->waktu_pengingat->isPast()) {
             return false;
         }
 
-        return $pengingat->update([
+        return $this->update([
             'status_pengingat' => true,
             'terkirim_pada' => null,
         ]);

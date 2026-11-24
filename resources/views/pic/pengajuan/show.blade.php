@@ -20,7 +20,8 @@
     </section>
     @if ($pengajuan->bisaDiubahPic())
         <section class="pk-card bg-white p-4 p-md-5">
-            <h2 class="h5 fw-bold mb-1">Unggah atau perbarui berkas</h2><p class="text-secondary small mb-4">Anda dapat mengunggah beberapa dokumen sekaligus. Berkas sebelumnya akan diganti jika dokumen yang sama dipilih.</p>
+            <h2 class="h5 fw-bold mb-1">Unggah atau perbarui berkas</h2><p class="text-secondary small mb-2">Anda dapat mengunggah beberapa dokumen sekaligus. Berkas sebelumnya akan diganti jika dokumen yang sama dipilih.</p>
+            <div class="alert alert-info small mb-4"><i class="bi bi-info-circle me-2"></i>Ukuran maksimal setiap berkas adalah 5 MB. Jika total unggahan terlalu besar, kurangi jumlah berkas dalam sekali unggah dan coba lagi.</div>
             <form method="POST" enctype="multipart/form-data" action="{{ route('pic.pengajuan.berkas', $pengajuan) }}" class="row g-3">
                 @csrf
                 <div class="col-md-4"><label class="form-label" for="proposal">Proposal <span class="text-secondary fw-normal">PDF/DOC, maks. 5 MB</span></label><input id="proposal" type="file" name="berkas_proposal" accept=".pdf,.doc,.docx" class="form-control"></div>
